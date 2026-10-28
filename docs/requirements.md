@@ -45,6 +45,7 @@
 | NF-02 | 版上げ耐性 | `_backend` の契約テストで壊れた箇所が分かる | Must | 済（tests/contract） |
 | NF-03 | 配布 | Windows / Ubuntu 向けの実行ファイルをビルドできる | Must | スクリプトのみ。実ビルド未確認 |
 | NF-04 | 依存 | 必須依存は Flet だけ。openpyxl はアプリ側 | Should | 済 |
+| UI-08 | ファイル入力 | ファイルをドラッグ&ドロップで受け取る（`fk.DropZone`） | Should | 実装済み。ビルドした実行ファイルでの動作は未確認 |
 
 ## 3. 設計の要点
 
@@ -53,6 +54,12 @@
 - ロジック（ソート・フィルタ・検証・設定の読み書き）は Flet なしでテストできる場所に置く
 - イベントハンドラは同期・async どちらも可。引数は受け取れる数だけ渡す（on_click は0個、on_change は値1個）。例外はログ＋エラーダイアログ
 - 逃げ道 `fk.raw()` で Flet の部品を直接置ける。版上げ時に grep で確認する
+- ドラッグ&ドロップ（2026-10-28 追加）：Flet 1.0 本体は OS からのファイルドロップに対応していないため、サードパーティの Flutter 拡張 flet-dropzone 0.4.0（desktop_drop を使用）を使う。
+  - Flutter 拡張なので `flet build` で作った実行ファイルでしか動かない。`python main.py` では Flet 同梱のクライアントに拡張が入っていない
+  - 判定は `_backend/features.py` の `drop_supported()`：環境変数 `FLET_PLATFORM`（ビルドした実行ファイルで設定される）があり、flet-dropzone が入っているとき。`FLETKIT_DROP=1/0` で上書きできる
+  - 使えないときは DropZone は中身だけを表示する（未知の部品としてエラー表示にならないように）
+  - flet-dropzone の Flutter 側は `flet: ^0.80.0` を要求するが、`flet build` のテンプレートが `dependency_overrides` で flet 1.0.5 に固定するため依存の解決は通る。使っている Dart の API（Control.get / triggerEvent / addInvokeMethodListener / buildWidget / LayoutControl / FletExtension）が Flet 1.0.5 にあることはソースで確認済み。実ビルドは未確認
+  - fletkit の必須依存にはしない（NF-04）。`pip install fletkit[drop]`、アプリ側は dependencies に書く（flet build はアプリの dependencies から拡張を組み込む）
 - ビルドは `scripts/build_app.py` が fletkit をアプリの `src/` に一時コピーしてから `flet build`
 
 ## 4. Excel ビューアの仕様（決定事項）
@@ -69,6 +76,8 @@
 - CSV は表示中シートのフィルタ・ソート後の内容を UTF-8（BOM 付き）で出力
 - 最近開いたファイル5件と最後のフォルダを保存
 - 起動引数にパスを渡すとそのファイルを開く
+- ファイルはドラッグ&ドロップで開く（ビルドした実行ファイル）。複数ドロップしたら最初の1件。拡張子の絞り込みはせず、対応外のファイルは読み込み時のエラーダイアログで知らせる
+- `python main.py` で起動したとき（ドロップ不可）だけ「開く」ボタンでファイル選択ダイアログを出す
 
 ## 5. 未決事項
 
@@ -81,10 +90,11 @@
 
 1. Windows / Ubuntu の実機で Excel ビューアを起動し、ウィンドウ位置の保存・ファイル選択ダイアログ・CSV 保存を確認
 2. `python scripts/build_app.py apps/excel_viewer windows` で exe を作って動作確認（Ubuntu も同様）
-3. 上の未決事項をユーザーに確認して反映
-4. 次の業務ツールの題材を決め、必要な部品を追加（例：グラフ表示、CAN ログの読み込み）
+3. ビルドした実行ファイルで、Excel ファイルのドラッグ&ドロップ（ドラッグ中の枠の強調、ドロップで開く、.xls などをドロップしたときのエラー表示）を確認。ビルドが失敗したら flet-dropzone を外すか自前の拡張を検討
+4. 上の未決事項をユーザーに確認して反映
+5. 次の業務ツールの題材を決め、必要な部品を追加（例：グラフ表示、CAN ログの読み込み）
 
 ## 7. 確認済み・未確認
 
-- 確認済み（クラウド環境、Flet 1.0.5）：pytest 35件、ブラウザ表示でファイルを開く・シート切替・フィルタ・ソート・見出し切替・設定の保存と反映・ログ表示・エラーダイアログ
-- 未確認：Windows / Ubuntu デスクトップでの起動、ウィンドウ状態の保存、ネイティブのファイルダイアログ、`flet build` による exe 化
+- 確認済み（クラウド環境、Flet 1.0.5）：pytest 39件、ブラウザ表示でファイルを開く・シート切替・フィルタ・ソート・見出し切替・設定の保存と反映・ログ表示・エラーダイアログ
+- 未確認：Windows / Ubuntu デスクトップでの起動、ウィンドウ状態の保存、ネイティブのファイルダイアログ、`flet build` による exe 化、ドラッグ&ドロップ（ビルドした実行ファイルでのみ動くため）

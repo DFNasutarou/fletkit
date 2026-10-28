@@ -3,7 +3,8 @@ name = "excel-viewer"
 version = "0.1.0"
 description = "Excel ファイルのシートを切り替えてセルの値を表示するツール"
 requires-python = ">=3.12"
-dependencies = ["flet>=1.0,<1.1", "openpyxl>=3.1"]
+# flet-dropzone はドラッグ&ドロップ用。flet build がこの一覧から Flutter 拡張を組み込む
+dependencies = ["flet>=1.0,<1.1", "openpyxl>=3.1", "flet-dropzone==0.4.0"]
 
 [tool.flet]
 product = "Excel ビューア"

@@ -92,6 +92,18 @@ def table(ctx: fk.Context) -> fk.Component:
     )
 
 
+@app.page("/drop", label="ドロップ", icon="file_download")
+def drop(ctx: fk.Context) -> fk.Component:
+    out = fk.Text("ここにファイルをドラッグ&ドロップしてください" if fk.DropZone.supported()
+                  else "ドラッグ&ドロップは flet build で作った実行ファイルでだけ使えます", style="muted")
+
+    def dropped(paths: list) -> None:
+        out.set("\n".join(str(p) for p in paths))
+        ctx.status(f"{len(paths)} 件ドロップされました")
+
+    return fk.DropZone(fk.Column(fk.Text("ドラッグ&ドロップ", style="title"), out, padding=24, expand=True), on_drop=dropped, expand=True)
+
+
 @app.page("/form", label="フォーム", icon="edit_note")
 def form(ctx: fk.Context) -> fk.Component:
     return fk.Column(fk.Text("設定フォーム", style="title"), fk.Form(ctx.settings, on_submit=ctx.save_settings), padding=24)

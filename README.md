@@ -44,6 +44,7 @@ if __name__ == "__main__":
 | ダイアログ | `fk.dialog.info / error / confirm / open_file / open_files / save_file / pick_folder / progress` |
 | 設定 | データクラスを JSON で保存。Windows は `%APPDATA%\<app_id>`、Ubuntu は `~/.config/<app_id>`。ウィンドウ位置・サイズも保存 |
 | ログ | 標準 `logging`。ファイル（`<設定フォルダ>/logs/app.log`、1MB×5世代）と画面の「ログ」ページ |
+| ドラッグ&ドロップ | `fk.DropZone(中身, on_drop=関数)`：ドロップされたファイルのパス（`list[Path]`）を受け取る。`flet build` で作った実行ファイルでのみ動作（[flet-dropzone](https://github.com/shiena/flet-dropzone) を使用）。`python main.py` で起動したときは中身だけを表示する。使えるかは `fk.DropZone.supported()` |
 | 逃げ道 | `fk.raw(flet_control)` で Flet の部品を直接置ける（版上げ時の確認対象） |
 
 イベントハンドラは通常の関数でも async 関数でもかまいません。ハンドラ内で例外が起きると、ログに残したうえでエラーダイアログを出します。
@@ -72,7 +73,7 @@ scripts/build_app.py  実行ファイルのビルド
 python -m venv .venv
 # Windows: .venv\Scripts\activate   Ubuntu: source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                              # テスト（35件）
+pytest                              # テスト（39件）
 python examples/catalog/main.py     # 部品カタログ
 python apps/excel_viewer/src/main.py [Excelファイル]
 ```
@@ -91,6 +92,8 @@ Ubuntu でファイル選択ダイアログを使うには zenity が必要で�
 - 先頭列は Excel 上の行番号。フィルタ・ソート後の内容を CSV に出力
 - 最近開いたファイル（5件）・最後に開いたフォルダを保存
 - 起動引数にファイルパスを渡すとそのファイルを開く
+- ファイルは画面にドラッグ&ドロップして開く（ビルドした実行ファイルのみ）。複数ドロップしたときは最初の1件を開く
+- `python main.py` で起動したときはドロップが使えないため、代わりに「開く」ボタン（ファイル選択ダイアログ）を出す
 
 動作確認用のサンプルは `python apps/excel_viewer/samples/make_sample.py` で作れます。
 
@@ -115,3 +118,4 @@ python scripts/build_app.py apps/excel_viewer linux     # → apps/excel_viewer/
 4. `pytest` 全体を実行
 5. カタログアプリと Excel ビューアを起動して目で確認
 6. `grep -rn "fk.raw\|import flet" apps examples` で直接 Flet を使っている箇所を確認
+7. flet-dropzone（`pyproject.toml` の `drop` と Excel ビューアの dependencies で版を固定）が新しい Flet に対応しているか確認する。ビルドした実行ファイルでドラッグ&ドロップを試す

@@ -7,6 +7,7 @@ Renderer は部品の _handle に入り、部品の refresh() で画面を更新
 from __future__ import annotations
 
 import enum
+from pathlib import Path
 from typing import Any, Callable, Optional, Protocol
 
 import flet as ft
@@ -16,6 +17,7 @@ from ..components.base import Component
 from ..components.form import Form
 from ..components.logview import LogView
 from ..components.table import Table
+from .features import drop_supported
 
 
 class ShellLike(Protocol):
@@ -335,6 +337,38 @@ class RawRenderer(Renderer):
         if not isinstance(self.comp.control, ft.Control):
             raise TypeError("fk.raw() には Flet のコントロールを渡してください")
         return self.comp.control
+
+
+@renders(w.DropZone)
+class DropZoneRenderer(Renderer):
+    """flet-dropzone（Flutter の desktop_drop）で包む。使えない環境では中身だけを出す。"""
+
+    IDLE = ft.Border.all(2, ft.Colors.TRANSPARENT)
+    ACTIVE = ft.Border.all(2, ft.Colors.PRIMARY)
+
+    def build(self) -> ft.Control:
+        c: w.DropZone = self.comp
+        self.box = ft.Container(render(c.content, self.shell), expand=c.expand, border=self.IDLE, border_radius=6)
+        if not drop_supported():
+            return self.box
+        import flet_dropzone as ftd
+
+        def dropped(e: Any) -> list[Path]:
+            self._highlight(False)
+            return [Path(f.path) for f in e.files if f.path]
+
+        return ftd.Dropzone(
+            content=self.box,
+            expand=c.expand,
+            on_dropped=self.shell.handler(c.on_drop, dropped),
+            on_entered=lambda e: self._highlight(True),
+            on_exited=lambda e: self._highlight(False),
+        )
+
+    def _highlight(self, on: bool) -> None:
+        """ドラッグ中は枠を色付きにする。"""
+        self.box.border = self.ACTIVE if on else self.IDLE
+        self.shell.request_update()
 
 
 # ---------------------------------------------------------------- テーブル

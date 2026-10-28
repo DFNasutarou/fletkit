@@ -1,5 +1,7 @@
 """Excel ビューア：Excel ファイルを開き、シートを切り替えてセルの値を表で見る。
 
+ファイルは画面にドラッグ&ドロップして開く（`flet build` で作った実行ファイルのみ）。
+`python main.py` で起動したときはドロップが使えないため、代わりに「開く」ボタンを出す。
 起動時にファイルパスを引数で渡すと、そのファイルを開く。
     python main.py C:\\data\\log.xlsx
 """
@@ -52,10 +54,16 @@ class Viewer:
         self.header = fk.Checkbox("1行目を見出しにする", s.header_first_row, on_change=self.on_header)
         self.export = fk.Button("CSV出力", self.export_csv, icon="download", enabled=False)
         self.tabs = fk.Tabs(on_change=self.on_tab)
-        self.table = fk.Table(page_size=s.rows_per_page, formatter=format_value, empty_text="「開く」から Excel ファイルを選んでください")
-        self.view = fk.Column(
+        drop = fk.DropZone.supported()
+        empty = (
+            "Excel ファイル（.xlsx / .xlsm）をここにドラッグ&ドロップしてください"
+            if drop
+            else "「開く」から Excel ファイルを選んでください（ドラッグ&ドロップはビルドした実行ファイルで使えます）"
+        )
+        self.table = fk.Table(page_size=s.rows_per_page, formatter=format_value, empty_text=empty)
+        content = fk.Column(
             fk.Toolbar(
-                fk.Button("開く", self.choose_file, icon="folder_open", primary=True),
+                None if drop else fk.Button("開く", self.choose_file, icon="folder_open", primary=True),
                 self.recent,
                 self.header,
                 fk.Spacer(),
@@ -66,9 +74,17 @@ class Viewer:
             spacing=0,
             expand=True,
         )
+        self.view = fk.DropZone(content, on_drop=self.on_drop, expand=True)
         ctx.on_settings_changed(self.on_settings)
 
     # ---- ファイルを開く ----
+    async def on_drop(self, paths: list[Path]) -> None:
+        if not paths:
+            return
+        if len(paths) > 1:
+            self.ctx.log.info("%d 件ドロップされたため、最初の %s だけを開きます", len(paths), paths[0].name)
+        await self.open_path(paths[0])
+
     async def choose_file(self) -> None:
         s: Settings = self.ctx.settings
         path = await fk.dialog.open_file(ext=["xlsx", "xlsm"], initial_dir=s.last_dir or None, title="Excel ファイルを開く")

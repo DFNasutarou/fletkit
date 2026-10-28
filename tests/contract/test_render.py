@@ -245,3 +245,33 @@ def test_logview(shell: FakeShell) -> None:
     for i in range(3):
         shell.log_listeners[0](f"line {i}")
     assert len(lst.controls) == 3 and lst.controls[-1].value == "line 2"
+
+
+def test_dropzone_unsupported_shows_content_only(shell: FakeShell, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FLETKIT_DROP", "0")
+    dz = fk.DropZone(fk.Text("中身"), on_drop=lambda paths: None, expand=True)
+    c = render(dz, shell)
+    assert isinstance(c, ft.Container) and c.expand is True
+    assert isinstance(c.content, ft.Text) and c.content.value == "中身"
+
+
+def test_dropzone(shell: FakeShell, monkeypatch: pytest.MonkeyPatch) -> None:
+    ftd = pytest.importorskip("flet_dropzone")
+    monkeypatch.setenv("FLETKIT_DROP", "1")
+    got = []
+    dz = fk.DropZone(fk.Text("中身"), on_drop=lambda paths: got.append(paths), expand=True)
+    c = render(dz, shell)
+    assert isinstance(c, ftd.Dropzone) and c.expand is True
+    box = c.content
+    assert isinstance(box, ft.Container) and box.content.value == "中身"
+    # ドラッグ中は枠を色付きにする
+    c.on_entered(Ev(c))
+    assert box.border.top.color == ft.Colors.PRIMARY
+    c.on_exited(Ev(c))
+    assert box.border.top.color == ft.Colors.TRANSPARENT
+    # ドロップでパスの一覧を受け取る
+    c.on_entered(Ev(c))
+    e = ftd.DropzoneEvent(name="dropped", control=c, files=[ftd.DropzoneFile("a.xlsx", "/data/a.xlsx")])
+    run(c.on_dropped(e))
+    assert got == [[Path("/data/a.xlsx")]]
+    assert box.border.top.color == ft.Colors.TRANSPARENT

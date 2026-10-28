@@ -185,6 +185,26 @@ class Divider(Component):
     pass
 
 
+class DropZone(Component):
+    """ファイルのドラッグ&ドロップを受け付ける領域。content をそのまま表示し、上にドロップされたファイルを受け取る。
+
+    on_drop はドロップされたファイルのパス（list[Path]）を1つ受け取る。
+    ドロップが使えるのは `flet build` で作った実行ファイルだけ（flet-dropzone が必要）。
+    それ以外では content だけを表示する。使えるかどうかは DropZone.supported() で分かる。
+    """
+
+    def __init__(self, content: Child, on_drop: Handler = None, *, expand: bool = False):
+        self.content = content
+        self.on_drop = on_drop
+        self.expand = expand
+
+    @staticmethod
+    def supported() -> bool:
+        from .._backend.features import drop_supported
+
+        return drop_supported()
+
+
 class Raw(Component):
     """Flet のコントロールを直接入れる逃げ道。使った箇所は版上げ時の確認対象。"""
 
