@@ -1,0 +1,15 @@
+[project]
+name = "excel-viewer"
+version = "0.1.0"
+description = "Excel ファイルのシートを切り替えてセルの値を表示するツール"
+requires-python = ">=3.12"
+dependencies = ["flet>=1.0,<1.1", "openpyxl>=3.1"]
+
+[tool.flet]
+product = "Excel ビューア"
+company = "fletkit"
+copyright = "fletkit"
+
+[tool.flet.app]
+path = "src"
+module = "main"

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fletkit"
+version = "0.1.0"
+description = "業務ツールを少ないコードで作るための Flet ラッパー"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["flet>=1.0,<1.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "openpyxl>=3.1", "flet-desktop>=1.0,<1.1", "flet-web>=1.0,<1.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "apps/excel_viewer/tests"]
+pythonpath = ["src", "apps/excel_viewer/src"]
